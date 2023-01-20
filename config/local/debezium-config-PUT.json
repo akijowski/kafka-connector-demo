@@ -7,7 +7,7 @@
   "database.server.id": "42",
   "database.server.name": "asgard",
   "table.include.list": "demo.orders",
-  "topic.prefix": "foo-prefix",
+  "topic.prefix": "asgard",
   "schema.history.internal.kafka.bootstrap.servers": "kafka:29092",
   "schema.history.internal.kafka.topic": "dbhistory.demo",
   "decimal.handling.mode": "double",

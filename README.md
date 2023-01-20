@@ -78,3 +78,6 @@ Helper container to act as a consumer or producer for topics.
 
 ### Image
 https://hub.docker.com/r/confluentinc/cp-kafkacat
+
+### URL
+https://github.com/edenhill/kcat

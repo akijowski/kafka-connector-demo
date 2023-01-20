@@ -89,8 +89,8 @@ services:
       - bash
       - -c
       - |
-        echo "Waiting two minutes for Kafka brokers to start and necessary topics to be available"
-        sleep 120
+        echo "Waiting one minute for Kafka brokers to start and necessary topics to be available"
+        sleep 60
         /etc/confluent/docker/run
     networks:
       - kafka-demo
@@ -170,7 +170,7 @@ services:
       mysql:
         condition: service_started
     tty: true
-    command: kafkacat -b kafka:29092 -r http://schemaregistry:8085 -s avro -t mysql-debezium-asgard.demo.ORDERS -C -o -10 -q | jq .
+    command: kafkacat -b kafka:29092 -r http://schemaregistry:8085 -s avro -t asgard.demo.ORDERS -C -q | jq .
     networks:
       - kafka-demo
 
