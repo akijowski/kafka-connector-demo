@@ -1,0 +1,120 @@
+version: '3.6'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    hostname: zookeeper
+    container_name: zookeeper
+    restart: always
+    healthcheck:
+      test: echo srvr | nc zookeeper 2181 || exit 1
+      retries: 20
+      interval: 10s
+    ports:
+      - 2181:2181
+    env_file:
+      - env/stage/zookeeper.env
+    networks:
+      - kafka-demo-stage
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka
+    container_name: kafka
+    restart: always
+    healthcheck:
+      test: echo hello | nc kafka 9092 || exit 1
+      interval: 10s
+      retries: 25
+      start_period: 20s
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - 9092:9092
+      - 9101:9101
+    env_file:
+      - env/stage/kafka-broker.env
+    networks:
+      - kafka-demo-stage
+
+  kafka-connect-debezium:
+    image: confluentinc/cp-kafka-connect-base:latest
+    container_name: conn-debezium
+    restart: always
+    healthcheck:
+      start_period: 10s
+      interval: 10s
+      retries: 20
+      test: curl --user superUser:superUser --fail --silent --insecure http://kafka-connect-debezium:8083/ --output /dev/null || exit 1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - 8083:8083
+    env_file:
+      - env/stage/kafka-connect-debezium.env
+    volumes:
+      - $PWD/tmp/debezium/data:/data
+    command:
+      - bash
+      - -c
+      - |
+        echo "Installing Connector"
+        confluent-hub install --no-prompt debezium/debezium-connector-mysql:2.0.1
+        #
+        echo "Launching Kafka Connect worker"
+        /etc/confluent/docker/run &
+        #
+        sleep infinity
+    networks:
+      - kafka-demo-stage
+
+  curl-local:
+    image: curlimages/curl:latest
+    container_name: curl-local
+    restart: on-failure
+    depends_on:
+      kafka-connect-debezium:
+        condition: service_healthy
+    volumes:
+      - $PWD/tmp:/config
+    command: -i -X PUT --json @/config/debezium-config-PUT.json http://kafka-connect-debezium:8083/connectors/source-debezium-overwatch-00/config
+    networks:
+      - kafka-demo-stage
+
+  control-center:
+    image: confluentinc/cp-enterprise-control-center:latest
+    container_name: control-center
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - 9021:9021
+    env_file:
+      - env/stage/kafka-control-center.env
+    command:
+      - bash
+      - -c
+      - |
+        echo "Waiting two minutes for Kafka brokers to start and necessary topics to be available"
+        sleep 120
+        /etc/confluent/docker/run
+    networks:
+      - kafka-demo-stage
+
+  kcat-debezium-consumer:
+    image: confluentinc/cp-kafkacat:latest
+    container_name: kcat-deb-con
+    restart: on-failure
+    depends_on:
+      kafka-connect-debezium:
+        condition: service_healthy
+    tty: true
+    command: kafkacat -b kafka:29092 -t maildb.mail.user -C -o -10 -q
+    networks:
+      - kafka-demo-stage
+
+networks:
+  kafka-demo-stage:
+    name: kafka-demo-stage

@@ -1,0 +1,21 @@
+{
+  "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+  "database.hostname": "host.docker.internal",
+  "database.port": "3306",
+  "database.user": "debezium",
+  "database.password": "<TODO>",
+  "database.server.id": "133700",
+  "database.server.name": "<TODO>",
+  "database.include.list": "<TODO>",
+  "schema.history.internal.kafka.topic": "<TODO>",
+  "schema.history.internal.kafka.bootstrap.servers": "kafka:29092",
+  "database.connectionTimeZone": "America/Chicago",
+  "table.include.list": "<TODO>",
+  "column.exclude.list": "<TODO>",
+  "include.schema.changes": "false",
+  "snapshot.mode": "schema_only",
+  "decimal.handling.mode": "string",
+  "schema.history.internal.store.only.captured.tables.ddl": "true",
+  "schema.history.internal.skip.unparseable.ddl": "true",
+  "tombstones.on.delete": "false"
+}

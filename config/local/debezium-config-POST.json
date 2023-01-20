@@ -1,0 +1,26 @@
+{
+  "name": "source-debezium-orders-01",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "database.hostname": "mysql",
+    "database.port": "3306",
+    "database.user": "debezium",
+    "database.password": "dbz",
+    "database.server.id": "43",
+    "database.server.name": "asgard",
+    "table.whitelist": "demo.orders",
+    "database.history.kafka.bootstrap.servers": "kafka:29092",
+    "database.history.kafka.topic": "dbhistory.demo",
+    "decimal.handling.mode": "double",
+    "include.schema.changes": "true",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "true",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "true",
+    "transforms": "unwrap,addTopicPrefix",
+    "transforms.unwrap.type": "io.debezium.transforms.UnwrapFromEnvelope",
+    "transforms.addTopicPrefix.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.addTopicPrefix.regex": "(.*)",
+    "transforms.addTopicPrefix.replacement": "mysql-debezium-json-no-schema-$1"
+  }
+}
