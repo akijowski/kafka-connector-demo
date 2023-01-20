@@ -28,3 +28,29 @@ tasks:
     desc: Stop the Docker-Compose stack connected to Stage
     cmds:
       - docker-compose -f docker-compose.stage.yaml down
+
+  k8s-cluster-create:
+    desc: Create a Kind cluster
+    cmds:
+      - kind create cluster  --config=config/kind/node-config.yaml --wait 2m
+  k8s-delete:
+    desc: Delete the Kind cluster
+    aliases:
+      - k8s-down
+    cmds:
+      - kind delete cluster
+  k8s-up:
+    desc: Bring up the stack!
+    aliases:
+      - k8s
+    deps:
+      - k8s-cluster-create
+    cmds:
+      - kubectl apply -f .kubernetes/zookeeper
+      - kubectl wait --for=condition=Available=true deploy/zookeeper --timeout=2m
+      - kubectl apply -f .kubernetes/kafka
+      - kubectl wait --for=condition=Available=true deploy/kafka-broker --timeout=2m
+      - kubectl apply -f .kubernetes/controlcenter
+      - kubectl wait --for=condition=Available=true deploy/controlcenter --timeout=3m
+      - kubectl apply -f .kubernetes/connect
+      - kubectl wait --for=condition=Available=true deploy/connect --timeout=2m

@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: connect
+  name: connect
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: connect
+  template:
+    metadata:
+      labels:
+        app: connect
+    spec:
+      initContainers:
+        - name: debezium-installer
+          image: confluentinc/cp-kafka-connect-base
+          env:
+            - name: CONNECT_PLUGIN_PATH
+              value: '/usr/share/java,/usr/share/confluent-hub-components'
+          command:
+            - bash
+            - -c
+            - |
+              echo "Installing Connector"
+              confluent-hub install --no-prompt debezium/debezium-connector-mysql:2.0.1
+          volumeMounts:
+            - mountPath: '/usr/share/confluent-hub-components'
+              name: share
+
+      containers:
+        - image: confluentinc/cp-kafka-connect-base:latest
+          name: connect
+          ports:
+            - containerPort: 8083
+              name: api
+          livenessProbe:
+            httpGet:
+              port: 8083
+              path: /
+            initialDelaySeconds: 10
+            failureThreshold: 10
+            periodSeconds: 10
+          envFrom:
+            - configMapRef:
+                name: connect-cm
+          volumeMounts:
+            - mountPath: '/usr/share/confluent-hub-components'
+              name: share
+
+      volumes:
+        - name: share
+          emptyDir: {}

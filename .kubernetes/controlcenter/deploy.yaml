@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: controlcenter
+  name: controlcenter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controlcenter
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: controlcenter
+    spec:
+      containers:
+      - image: confluentinc/cp-enterprise-control-center:latest
+        name: controlcenter
+        command:
+          - bash
+          - -c
+          - |
+            echo "Waiting one minute for Kafka brokers to start and necessary topics to be available"
+            sleep 60
+            /etc/confluent/docker/run
+        ports:
+          - containerPort: 9021
+            name: http
+        envFrom:
+          - configMapRef:
+              name: cc-cm

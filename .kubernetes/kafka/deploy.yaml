@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: kafka-broker
+  name: kafka-broker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-broker
+  template:
+    metadata:
+      labels:
+        app: kafka-broker
+    spec:
+      containers:
+      - image: confluentinc/cp-kafka:latest
+        name: broker
+        ports:
+          - containerPort: 29092
+            name: internal
+          - containerPort: 9101
+            name: metrix
+        livenessProbe:
+          exec:
+            command:
+              - |
+                echo hello | nc 127.0.0.1 9092 || exit 1
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 10
+          successThreshold: 1
+        envFrom:
+          - configMapRef:
+              name: kafka-cm

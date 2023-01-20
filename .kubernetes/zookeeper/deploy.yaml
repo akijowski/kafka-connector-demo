@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: zookeeper
+  name: zookeeper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+    spec:
+      containers:
+      - image: confluentinc/cp-zookeeper:latest
+        name: zk
+        ports:
+          - containerPort: 2181
+        livenessProbe:
+          exec:
+            command:
+              - |
+                echo srvr | nc 127.0.0.1 2181 || exit 1
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 10
+          successThreshold: 1
+        envFrom:
+          - configMapRef:
+              name: zk-cm

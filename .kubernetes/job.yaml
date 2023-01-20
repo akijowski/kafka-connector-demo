@@ -1,0 +1,13 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: my-job
+spec:
+  template:
+    metadata:
+    spec:
+      containers:
+      - image: job.foo.bar
+        name: my-job
+        resources: {}
+      restartPolicy: Never
