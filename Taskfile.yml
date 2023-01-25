@@ -14,6 +14,18 @@ tasks:
     desc: Stop the local Docker-Compose stack
     cmds:
       - docker-compose down
+  kcat-local:
+    desc: Consume messages from the local Kafka cluster
+    cmds:
+      - |
+        docker run -it --rm --network kafka-demo --log-driver=none -a stdin -a stdout -a stderr \
+          confluentinc/cp-kafkacat:latest \
+          kafkacat \
+          -b kafka:29092 \
+          -r http://schemaregistry:8085 \
+          -s avro \
+          -t asgard.demo.ORDERS \
+          -C -c 20 -e | jq . > kcat.json
 
   stage-tunnel:
     desc: TODO - Open an SSH tunnel to Stage MySQL
