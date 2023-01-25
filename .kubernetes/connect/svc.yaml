@@ -3,11 +3,10 @@ kind: Service
 metadata:
   labels:
     app: connect
-  name: connect
+  name: connect-svc
 spec:
   ports:
   - name: api
-    nodePort: 30951
     port: 8083
     protocol: TCP
     targetPort: api

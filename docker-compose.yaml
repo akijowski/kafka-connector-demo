@@ -156,7 +156,11 @@ services:
         condition: service_started
     volumes:
       - $PWD/config/local:/config
-    command: -i -X PUT --json @/config/debezium-config-PUT.json http://kafka-connect-debezium:8083/connectors/source-debezium-orders-00/config
+      - $PWD/bin:/scripts
+    environment:
+      MY_SQL_PASSWORD: dbz
+    entrypoint: /bin/sh
+    command: /scripts/local-curl-put
     networks:
       - kafka-demo
 

@@ -25,7 +25,7 @@ spec:
             - -c
             - |
               echo "Installing Connector"
-              confluent-hub install --no-prompt debezium/debezium-connector-mysql:2.0.1
+              confluent-hub install --no-prompt debezium/debezium-connector-mysql:1.9.7
           volumeMounts:
             - mountPath: '/usr/share/confluent-hub-components'
               name: share

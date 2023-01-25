@@ -45,6 +45,7 @@ tasks:
     desc: Create a Kind cluster
     cmds:
       - kind create cluster  --config=config/kind/node-config.yaml --wait 2m
+      - ./bin/kind-ingress-nginx
   k8s-delete:
     desc: Delete the Kind cluster
     aliases:

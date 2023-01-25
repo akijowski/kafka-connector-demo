@@ -3,14 +3,14 @@ kind: Service
 metadata:
   labels:
     app: controlcenter
-  name: controlcenter
+  name: controlcenter-svc
 spec:
   ports:
   - name: http
-    nodePort: 30950
     port: 9021
     protocol: TCP
     targetPort: http
+    nodePort: 30950
   selector:
     app: controlcenter
   type: NodePort
