@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: connector-config
+spec:
+  completions: 1
+  parallelism: 1
+  template:
+    metadata: {}
+    spec:
+      containers:
+      - image: curlimages/curl:latest
+        name: connector-config
+        command:
+          - /opt/scripts/curl-PUT.sh
+        env:
+          - name: MY_SQL_PASSWORD
+            value: 'dbz'
+        volumeMounts:
+          # https://github.com/kubernetes/kubernetes/issues/71356#issuecomment-441169334
+          - mountPath: "/opt/scripts"
+            name: execution-scripts
+      restartPolicy: Never
+      volumes:
+        - name: execution-scripts
+          configMap:
+            name: curl-execution-cm
+            defaultMode: 0777
+            items:
+              - key: "curl-PUT.sh"
+                path: "curl-PUT.sh"
