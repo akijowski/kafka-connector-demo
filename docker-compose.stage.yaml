@@ -61,7 +61,7 @@ services:
       - -c
       - |
         echo "Installing Connector"
-        confluent-hub install --no-prompt debezium/debezium-connector-mysql:2.0.1
+        confluent-hub install --no-prompt debezium/debezium-connector-mysql:1.9.7
         #
         echo "Launching Kafka Connect worker"
         /etc/confluent/docker/run &
@@ -77,9 +77,17 @@ services:
     depends_on:
       kafka-connect-debezium:
         condition: service_healthy
+    environment:
+      CONNECTOR_NAME: source-debezium-00
+      STAGE_DB_PASSWORD: $STAGE_DB_PASSWORD
+      STAGE_DB_USER:
+      STAGE_DB: $STAGE_DB
+      STAGE_DB_INCLUDE: $STAGE_DB_INCLUDE
+      STAGE_DB_TABLE_INCLUDE: $STAGE_DB_TABLE_INCLUDE
     volumes:
-      - $PWD/tmp:/config
-    command: -i -X PUT --json @/config/debezium-config-PUT.json http://kafka-connect-debezium:8083/connectors/source-debezium-overwatch-00/config
+      - $PWD/bin:/scripts
+    entrypoint: /bin/sh
+    command: /scripts/stage-curl-put
     networks:
       - kafka-demo-stage
 
@@ -97,8 +105,8 @@ services:
       - bash
       - -c
       - |
-        echo "Waiting two minutes for Kafka brokers to start and necessary topics to be available"
-        sleep 120
+        echo "Waiting one minute for Kafka brokers to start and necessary topics to be available"
+        sleep 60
         /etc/confluent/docker/run
     networks:
       - kafka-demo-stage
@@ -111,7 +119,7 @@ services:
       kafka-connect-debezium:
         condition: service_healthy
     tty: true
-    command: kafkacat -b kafka:29092 -t maildb.mail.user -C -o -10 -q
+    command: kafkacat -b kafka:29092 -t $KCAT_TOPIC -C -o -10 -q
     networks:
       - kafka-demo-stage
 

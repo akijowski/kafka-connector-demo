@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -eou pipefail
+
+source .stage.env
+
+cat <<EOF | curl -s -X PUT --json @- http://localhost:8083/connector-plugins/io.debezium.connector.mysql.MySqlConnector/config/validate | jq > tmp/validate.json
+{
+  "name": "doesnt-matter",
+  "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+  "database.hostname": "host.docker.internal",
+  "database.port": "3306",
+  "database.user": "$STAGE_DB_USER",
+  "database.password": "$STAGE_DB_PASSWORD",
+  "database.server.id": "133700",
+  "database.server.name": "$STAGE_DB",
+  "database.include.list": "$STAGE_DB_INCLUDE",
+  "table.include.list": "$STAGE_DB_TABLE_INCLUDE",
+  "topic.prefix": "$STAGE_DB",
+  "database.history.kafka.bootstrap.servers": "kafka:29092",
+  "database.history.kafka.topic": "dbhistory.$STAGE_DB",
+  "database.connectionTimeZone": "America/Chicago",
+  "decimal.handling.mode": "string",
+  "include.schema.changes": "true",
+  "transforms": "unwrap",
+  "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState"
+}
+EOF

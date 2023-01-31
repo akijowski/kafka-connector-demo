@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -eou pipefail
+
 cat <<EOF | curl -v -X PUT --json @- http://kafka-connect-debezium:8083/connectors/source-debezium-orders-00/config
 {
   "connector.class": "io.debezium.connector.mysql.MySqlConnector",

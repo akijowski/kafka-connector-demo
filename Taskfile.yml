@@ -1,8 +1,5 @@
 version: '3'
 
-dotenv:
-  - '.stage.env'
-
 tasks:
   default: task --list
 
@@ -33,10 +30,14 @@ tasks:
       - ssh -o StrictHostKeyChecking=no -L 3306:${STAGE_DB_HOST}:3306 ${SSH_USER}@${SSH_HOST}
     interactive: true
   dc-stage-up:
+    dotenv:
+      - .stage.env
     desc: Start the Docker-Compose stack to connect to Stage
     cmds:
       - docker-compose -f docker-compose.stage.yaml up -d
   dc-stage-down:
+    dotenv:
+      - .stage.env
     desc: Stop the Docker-Compose stack connected to Stage
     cmds:
       - docker-compose -f docker-compose.stage.yaml down
