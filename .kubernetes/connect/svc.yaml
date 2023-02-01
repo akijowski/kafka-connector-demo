@@ -10,6 +10,10 @@ spec:
     port: 8083
     protocol: TCP
     targetPort: api
+  - name: metrics
+    port: 8080
+    protocol: TCP
+    targetPort: metrics
   selector:
     app: connect
   type: NodePort

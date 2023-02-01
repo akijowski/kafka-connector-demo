@@ -111,10 +111,19 @@ services:
         condition: service_healthy
     ports:
       - 8083:8083
+      - 8080:8080
+      - 1999:1999
     env_file:
       - env/local/kafka-connect-debezium.env
+    environment:
+      KAFKA_OPTS: '-javaagent:/kafka/etc/jmx_agent.jar=8080:/kafka/etc/jmx-config.yml'
+      KAFKA_JMX_PORT: 1999
+      KAFKA_JMX_HOSTNAME: '0.0.0.0'
     volumes:
       - $PWD/tmp/debezium/data:/data
+      # Add the prometheus agent jar and config file
+      - $PWD/tmp/jmx_agent.jar:/kafka/etc/jmx_agent.jar
+      - $PWD/tmp/jmx-config.yml:/kafka/etc/jmx-config.yml
     command:
       - bash
       - -c

@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: connect
+  name: connect
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: connect
+  template:
+    metadata:
+      labels:
+        app: connect
+    spec:
+      initContainers:
+        - name: debezium-installer
+          image: confluentinc/cp-kafka-connect-base:latest
+          env:
+            - name: CONNECT_PLUGIN_PATH
+              value: '/usr/share/java,/usr/share/confluent-hub-components'
+          command:
+            - bash
+            - -c
+            - |
+              echo "Installing Connector"
+              confluent-hub install --no-prompt debezium/debezium-connector-mysql:1.9.7
+          volumeMounts:
+            - mountPath: '/usr/share/confluent-hub-components'
+              name: share
+        - name: jmx-exporter-installer
+          image: curlimages/curl:latest
+          env:
+            - name: JMX_AGENT_VERSION
+              value: '0.17.2'
+          # Run the curl command, and save the JAR file, as 1000:1000, the ID for the Kafka Connect process
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          command:
+            - /opt/scripts/do-curl.sh
+          volumeMounts:
+            - mountPath: '/kafka/etc'
+              name: kafka-etc
+            - mountPath: '/opt/scripts'
+              name: helper-scripts
+
+      containers:
+        - image: confluentinc/cp-kafka-connect-base:latest
+          name: connect
+          ports:
+            - containerPort: 8083
+              name: api
+            - containerPort: 8080
+              name: metrics
+          livenessProbe:
+            httpGet:
+              port: 8083
+              path: /
+            initialDelaySeconds: 10
+            failureThreshold: 10
+            periodSeconds: 10
+          envFrom:
+            - configMapRef:
+                name: connect-cm
+            - configMapRef:
+                name: connect-jmx-cm
+          volumeMounts:
+            - mountPath: '/usr/share/confluent-hub-components'
+              name: share
+            - mountPath: '/kafka/etc'
+              name: kafka-etc
+            - mountPath: '/kafka/etc/config.yml'
+              name: jmx-config
+              subPath: config.yml
+            - mountPath: '/kafka/etc/config-basic.yml'
+              name: jmx-config
+              subPath: config-basic.yml
+
+      volumes:
+        - name: share
+          emptyDir: {}
+        - name: kafka-etc
+          emptyDir: {}
+        - name: jmx-config
+          configMap:
+            name: connect-jmx-config-cm
+            # valid permissions for the jmx configs: -rw-rw-r--
+            defaultMode: 0664
+            items:
+              - key: config.yml
+                path: config.yml
+              - key: config-basic.yml
+                path: config-basic.yml
+        - name: helper-scripts
+          configMap:
+            name: connect-scripts-cm
+            defaultMode: 0754
+            items:
+              - key: 'do-curl.sh'
+                path: 'do-curl.sh'
+      # Any filesystem mounted to the pod will be owned by this group
+      securityContext:
+        fsGroup: 1000

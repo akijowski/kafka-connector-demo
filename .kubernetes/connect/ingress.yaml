@@ -15,3 +15,10 @@ spec:
                 name: connect-svc
                 port:
                   name: api
+          - pathType: Prefix
+            path: /connect-prom(/|$)(.*)
+            backend:
+              service:
+                name: connect-svc
+                port:
+                  name: metrics
