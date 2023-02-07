@@ -13,9 +13,9 @@ services:
     ports:
       - 2181:2181
     env_file:
-      - env/stage/zookeeper.env
+      - env/test/zookeeper.env
     networks:
-      - kafka-demo-stage
+      - kafka-demo-test
 
   kafka:
     image: confluentinc/cp-kafka:latest
@@ -34,9 +34,9 @@ services:
       - 9092:9092
       - 9101:9101
     env_file:
-      - env/stage/kafka-broker.env
+      - env/test/kafka-broker.env
     networks:
-      - kafka-demo-stage
+      - kafka-demo-test
 
   kafka-connect-debezium:
     image: confluentinc/cp-kafka-connect-base:latest
@@ -50,10 +50,14 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      mysql-old:
+        condition: service_started
+      mysql-new:
+        condition: service_started
     ports:
       - 8083:8083
     env_file:
-      - env/stage/kafka-connect-debezium.env
+      - env/test/kafka-connect-debezium.env
     volumes:
       - $PWD/tmp/debezium/data:/data
     command:
@@ -68,7 +72,7 @@ services:
         #
         sleep infinity
     networks:
-      - kafka-demo-stage
+      - kafka-demo-test
 
   debezium-init:
     image: curlimages/curl:latest
@@ -79,17 +83,15 @@ services:
         condition: service_healthy
     environment:
       CONNECTOR_NAME: source-debezium-00
-      STAGE_DB_PASSWORD:
-      STAGE_DB_USER:
-      STAGE_DB:
-      STAGE_DB_INCLUDE:
-      STAGE_DB_TABLE_INCLUDE:
+      MYSQL_HOSTNAME: mysql-old
+      MYSQL_PASSWORD: 'dbz'
+      MYSQL_SERVER_ID: 1000
     volumes:
       - $PWD/bin/debezium:/scripts
     entrypoint: /bin/sh
-    command: /scripts/stage-curl-put
+    command: /scripts/test-curl-put
     networks:
-      - kafka-demo-stage
+      - kafka-demo-test
 
   control-center:
     image: confluentinc/cp-enterprise-control-center:latest
@@ -100,7 +102,7 @@ services:
     ports:
       - 9021:9021
     env_file:
-      - env/stage/kafka-control-center.env
+      - env/test/kafka-control-center.env
     command:
       - bash
       - -c
@@ -109,21 +111,42 @@ services:
         sleep 60
         /etc/confluent/docker/run
     networks:
-      - kafka-demo-stage
+      - kafka-demo-test
 
-  kcat-debezium-consumer:
-    image: confluentinc/cp-kafkacat:latest
-    container_name: kcat-deb-con
-    restart: on-failure
-    depends_on:
-      kafka-connect-debezium:
-        condition: service_healthy
-    tty: true
-    # Consume the most recent 10 messages
-    command: kafkacat -b kafka:29092 -t $KCAT_TOPIC -C -o -10 -q
+  mysql-old:
+    image: mysql:8.0
+    container_name: mysql-old
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=debezium
+      - MYSQL_USER=mysqluser
+      - MYSQL_PASSWORD=mysqlpw
+    volumes:
+      - ${PWD}/data/test/02-db-host-change/mysql-old:/docker-entrypoint-initdb.d
+      - ${PWD}/tmp/mysql/data:/data
+    command:
+      - mysqld
+      - --log-bin=my-old-db-bin
     networks:
-      - kafka-demo-stage
+      - kafka-demo-test
+
+  mysql-new:
+    image: mysql:8.0
+    container_name: mysql-new
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=debezium
+      - MYSQL_USER=mysqluser
+      - MYSQL_PASSWORD=mysqlpw
+    volumes:
+      - ${PWD}/data/test/02-db-host-change/mysql-new:/docker-entrypoint-initdb.d
+      - ${PWD}/tmp/mysql/data:/data
+    command:
+      - mysqld
+      - --log-bin=my-new-db-bin
+    networks:
+      - kafka-demo-test
 
 networks:
-  kafka-demo-stage:
-    name: kafka-demo-stage
+  kafka-demo-test:
+    name: kafka-demo-test

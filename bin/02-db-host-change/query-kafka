@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+
+set -eou pipefail
+
+KAFKA_BROKER='kafka:29092'
+CONNECTOR_STATUS_TOPIC='_connect-status'
+CONNECTOR_OFFSETS_TOPIC='_connect-offsets'
+
+consume_connector_status() {
+    topic_name=$1
+    kafkacat -b "$KAFKA_BROKER" -C -t "$topic_name" -J -e
+}
+
+consume_connector_offsets() {
+  topic_name=$1
+  kafkacat -b "$KAFKA_BROKER" -C -t "$topic_name" -J -e
+}
+
+printf "\nOutput of current connector status: %s\n" "$CONNECTOR_STATUS_TOPIC"
+consume_connector_status "$CONNECTOR_STATUS_TOPIC"
+
+printf "\nOutput of current connector offsets: %s\n" "$CONNECTOR_OFFSETS_TOPIC"
+consume_connector_offsets "$CONNECTOR_OFFSETS_TOPIC"

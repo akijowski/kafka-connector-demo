@@ -23,7 +23,7 @@ services:
     container_name: kafka
     restart: always
     healthcheck:
-      test: echo hello | nc kafka 9092 || exit 1
+      test: nc -z kafka 9092 || exit 1
       interval: 10s
       retries: 25
       start_period: 20s
@@ -149,14 +149,14 @@ services:
       - MYSQL_USER=mysqluser
       - MYSQL_PASSWORD=mysqlpw
     volumes:
-      - ${PWD}/data/mysql:/docker-entrypoint-initdb.d
+      - ${PWD}/data/local/mysql:/docker-entrypoint-initdb.d
       - ${PWD}/tmp/mysql/data:/data
     networks:
       - kafka-demo
 
-  curl-local:
+  debezium-init:
     image: curlimages/curl:latest
-    container_name: curl-local
+    container_name: debezium-init
     restart: on-failure
     depends_on:
       kafka-connect-debezium:
@@ -164,8 +164,7 @@ services:
       mysql:
         condition: service_started
     volumes:
-      - $PWD/config/local:/config
-      - $PWD/bin:/scripts
+      - $PWD/bin/debezium:/scripts
     environment:
       MY_SQL_PASSWORD: dbz
     entrypoint: /bin/sh
@@ -183,7 +182,7 @@ services:
       mysql:
         condition: service_started
     tty: true
-    command: kafkacat -b kafka:29092 -r http://schemaregistry:8085 -s avro -t asgard.demo.ORDERS -C -q | jq .
+    command: kafkacat -b kafka:29092 -r http://schemaregistry:8085 -s avro -t asgard.demo.ORDERS -C | jq .
     networks:
       - kafka-demo
 

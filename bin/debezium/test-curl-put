@@ -1,15 +1,17 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 set -eou pipefail
 
-cat <<EOF | curl -v -X PUT --json @- http://kafka-connect-debezium:8083/connectors/source-debezium-orders-00/config
+echo "Initial configuration of $CONNECTOR_NAME"
+
+cat <<EOF | curl -v -X PUT --json @- http://kafka-connect-debezium:8083/connectors/"$CONNECTOR_NAME"/config
 {
   "connector.class": "io.debezium.connector.mysql.MySqlConnector",
-  "database.hostname": "mysql",
+  "database.hostname": "$MYSQL_HOSTNAME",
   "database.port": "3306",
   "database.user": "debezium",
-  "database.password": "$MY_SQL_PASSWORD",
-  "database.server.id": "42",
+  "database.password": "$MYSQL_PASSWORD",
+  "database.server.id": "$MYSQL_SERVER_ID",
   "database.server.name": "asgard",
   "table.include.list": "demo.orders",
   "topic.prefix": "asgard",

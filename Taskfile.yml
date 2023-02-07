@@ -1,70 +1,59 @@
 version: '3'
 
+includes:
+  dc: ./taskfiles/Taskfile.compose.yml
+  k8s: ./taskfiles/Taskfile.k8s.yml
+
 tasks:
   default: task --list
 
-  dc-local-up:
-    desc: Start the local Docker-Compose stack
-    cmds:
-      - docker-compose up -d
-  dc-local-down:
-    desc: Stop the local Docker-Compose stack
-    cmds:
-      - docker-compose down
-  kcat-local:
-    desc: Consume messages from the local Kafka cluster
+  test-kafka-query:
+    internal: true
     cmds:
       - |
-        docker run -it --rm --network kafka-demo --log-driver=none -a stdin -a stdout -a stderr \
-          confluentinc/cp-kafkacat:latest \
-          kafkacat \
-          -b kafka:29092 \
-          -r http://schemaregistry:8085 \
-          -s avro \
-          -t asgard.demo.ORDERS \
-          -C -c 20 -e | jq . > kcat.json
-
-  stage-tunnel:
-    desc: TODO - Open an SSH tunnel to Stage MySQL
+        docker run -it --rm \
+          --network=kafka-demo-test \
+          -v "$PWD/bin/02-db-host-change:/scripts" \
+          --entrypoint /scripts/query-kafka \
+          confluentinc/cp-kafkacat:latest >> tmp/02-db-host-change
+  test-tail-topic:
+    internal: true
     cmds:
-      - ssh -o StrictHostKeyChecking=no -L 3306:${STAGE_DB_HOST}:3306 ${SSH_USER}@${SSH_HOST}
-    interactive: true
-  dc-stage-up:
-    dotenv:
-      - .stage.env
-    desc: Start the Docker-Compose stack to connect to Stage
+      - |
+        docker run -it --rm \
+          --network=kafka-demo-test \
+          -v "$PWD/bin/02-db-host-change:/scripts" \
+          --entrypoint /scripts/tail-topic \
+          confluentinc/cp-kafkacat:latest >> tmp/02-db-host-change
+  test-update-connector:
+    internal: true
+    env:
+      CONNECTOR_NAME: source-debezium-00
+      MYSQL_HOSTNAME: mysql-new
+      MYSQL_PASSWORD: 'dbz'
+      MYSQL_SERVER_ID: 1001
     cmds:
-      - docker-compose -f docker-compose.stage.yaml up -d
-  dc-stage-down:
-    dotenv:
-      - .stage.env
-    desc: Stop the Docker-Compose stack connected to Stage
-    cmds:
-      - docker-compose -f docker-compose.stage.yaml down
-
-  k8s-cluster-create:
-    desc: Create a Kind cluster
-    cmds:
-      - kind create cluster  --config=config/kind/node-config.yaml --wait 2m
-      - ./bin/kind-ingress-nginx
-  k8s-delete:
-    desc: Delete the Kind cluster
-    aliases:
-      - k8s-down
-    cmds:
-      - kind delete cluster
-  k8s-up:
-    desc: Bring up the stack!
-    aliases:
-      - k8s
+      - |
+        docker run -it --rm \
+          --network=kafka-demo-test \
+          -e MYSQL_HOSTNAME -e MYSQL_PASSWORD -e MYSQL_SERVER_ID -e CONNECTOR_NAME \
+          -v "$PWD/bin/02-db-host-change:/scripts" \
+          --entrypoint /bin/sh \
+          curlimages/curl:latest /scripts/update-connector >> tmp/02-db-host-change
+  test-db-host-change:
+    desc: Test changing the db host for a connector
     deps:
-      - k8s-cluster-create
+      - dc:test-up
     cmds:
-      - kubectl apply -f .kubernetes/zookeeper
-      - kubectl wait --for=condition=Available=true deploy/zookeeper --timeout=2m
-      - kubectl apply -f .kubernetes/kafka
-      - kubectl wait --for=condition=Available=true deploy/kafka-broker --timeout=2m
-      - kubectl apply -f .kubernetes/controlcenter
-      - kubectl wait --for=condition=Available=true deploy/controlcenter --timeout=3m
-      - kubectl apply -f .kubernetes/connect
-      - kubectl wait --for=condition=Available=true deploy/connect --timeout=2m
+      - echo "Waiting for topics to be ready" && sleep 60
+      - task: test-kafka-query
+      - task: test-tail-topic
+      - echo -e "\n# END INITIAL\n" >> tmp/02-db-host-change
+      - docker compose -f docker-compose.test.yaml stop mysql-old
+      - sleep 60
+      - task: test-kafka-query
+      - task: test-tail-topic
+      - task: test-update-connector
+      - echo -e "\n# END UPDATE\n" >> tmp/02-db-host-change && sleep 60
+      - task: test-kafka-query
+      - task: test-tail-topic

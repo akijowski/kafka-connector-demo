@@ -1,0 +1,45 @@
+version: '3'
+
+tasks:
+  local-up:
+    desc: Start the local Docker-Compose stack
+    cmds:
+      - docker compose up -d
+  local-down:
+    desc: Stop the local Docker-Compose stack
+    cmds:
+      - docker compose down -v
+  kcat-local:
+    desc: Consume messages from the local Kafka cluster
+    cmds:
+      - |
+        docker run -it --rm --network kafka-demo --log-driver=none -a stdin -a stdout -a stderr \
+          confluentinc/cp-kafkacat:latest \
+          kafkacat \
+          -b kafka:29092 \
+          -r http://schemaregistry:8085 \
+          -s avro \
+          -t asgard.demo.ORDERS \
+          -C -c -20 -e | jq . > kcat.json
+
+  stage-up:
+    dotenv:
+      - .stage.env
+    desc: Start the Docker-Compose stack to connect to Stage
+    cmds:
+      - docker compose -f docker-compose.stage.yaml up -d
+  stage-down:
+    dotenv:
+      - .stage.env
+    desc: Stop the Docker-Compose stack connected to Stage
+    cmds:
+      - docker compose -f docker-compose.stage.yaml down
+
+  test-up:
+    desc: Start the Docker-Compose stack for testing Debezium issues
+    cmds:
+      - docker compose -f docker-compose.test.yaml up -d
+  test-down:
+    desc: Stop the Docker-Compose test stack
+    cmds:
+      - docker compose -f docker-compose.test.yaml down -v

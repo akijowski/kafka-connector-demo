@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+
+set -eou pipefail
+
+KAFKA_BROKER='kafka:29092'
+
+MYSQL_TOPIC='asgard.demo.ORDERS'
+
+tail_topic() {
+  topic_name=$1
+  kafkacat -b "$KAFKA_BROKER" -C -t "$topic_name" -o -20 -f 'Topic:\n\t%t[%p], offset: %o\nKey:\n\t%k\nPayload:\n\t%s\n-----\n' -e
+}
+
+printf "\nTail of the connector output topic: %s\n" "$MYSQL_TOPIC"
+tail_topic "$MYSQL_TOPIC"
