@@ -26,3 +26,7 @@ tasks:
       - kubectl wait --for=condition=Available=true deploy/controlcenter --timeout=3m
       - kubectl apply -f .kubernetes/connect
       - kubectl wait --for=condition=Available=true deploy/connect --timeout=2m
+  argo:
+    desc: Simulate Argo steps
+    cmds:
+      - kubectl apply -f .kubernetes/argo

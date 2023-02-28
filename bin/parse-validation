@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+set -eou pipefail
+
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+PARENT_DIR=$(dirname "$SCRIPT_DIR")
+
+OUTPUT_FILE="$PARENT_DIR/tmp/validate.json"
+
+function jq_error_code() {
+  jq '.error_code // 200' < "$OUTPUT_FILE"
+}
+
+function jq_error_count() {
+  jq '.error_count // 0' < "$OUTPUT_FILE"
+}
+
+function jq_show_errors() {
+  jq '.configs | .[].value | select(.errors | length > 0)' < "$OUTPUT_FILE"
+}
+
+function main() {
+  error_code=$(jq_error_code)
+  if [[ "$error_code" -gt 299 ]]; then
+    cat "$OUTPUT_FILE"
+    exit 1
+  fi
+
+  error_count=$(jq_error_count)
+  printf "Found %d errors with body\n" "$error_count"
+
+  if [[ "$error_count" -gt 0 ]]; then
+    jq_show_errors
+    exit 2
+  fi
+}
+
+main "$@"

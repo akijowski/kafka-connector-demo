@@ -23,6 +23,11 @@ cat <<EOF | curl -s -X PUT --json @- http://localhost:8083/connector-plugins/io.
   "decimal.handling.mode": "string",
   "include.schema.changes": "true",
   "transforms": "unwrap",
-  "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState"
+  "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+  "topic.creation.default.replication.factor": 3,
+  "topic.creation.default.min.insync.replicas": 2,
+  "topic.creation.default.partitions": 10,
+  "topic.creation.default.cleanup.policy": "compact",
+  "topic.creation.default.compression.type": "lz4"
 }
 EOF

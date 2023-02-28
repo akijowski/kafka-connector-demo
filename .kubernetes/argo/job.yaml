@@ -10,6 +10,19 @@ spec:
     spec:
       containers:
       - image: curlimages/curl:latest
+        name: connector-config-validate
+        command:
+          - /opt/scripts/validate-PUT.sh
+        securityContext:
+          runAsUser: 0
+        env:
+          - name: MY_SQL_PASSWORD
+            value: 'dbz'
+        volumeMounts:
+          # https://github.com/kubernetes/kubernetes/issues/71356#issuecomment-441169334
+          - mountPath: "/opt/scripts"
+            name: execution-scripts
+      - image: curlimages/curl:latest
         name: connector-config
         command:
           - /opt/scripts/curl-PUT.sh
@@ -29,3 +42,5 @@ spec:
             items:
               - key: "curl-PUT.sh"
                 path: "curl-PUT.sh"
+              - key: "validate-PUT.sh"
+                path: "validate-PUT.sh"

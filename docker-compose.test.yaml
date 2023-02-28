@@ -96,6 +96,8 @@ services:
   control-center:
     image: confluentinc/cp-enterprise-control-center:latest
     container_name: control-center
+    profiles:
+      - admin
     depends_on:
       kafka:
         condition: service_healthy

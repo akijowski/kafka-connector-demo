@@ -25,3 +25,58 @@ data:
       "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState"
     }
     EOF
+
+  # Note: This script must be run with admin/root privileges to install any dependencies.
+  validate-PUT.sh: |
+    #!/usr/bin/env sh
+    set -eu pipefail
+    OUTPUT_FILE="validation.json"
+    function install_deps() {
+      apk add jq
+    }
+    function jq_error_code() {
+      jq '.error_code // 200' < "$OUTPUT_FILE"
+    }
+    function jq_error_count() {
+      jq '.error_count // 0' < "$OUTPUT_FILE"
+    }
+    function jq_show_errors() {
+      jq '.configs | .[].value | select(.errors | length > 0)' < "$OUTPUT_FILE"
+    }
+    function curl_validate() {
+      cat <<EOF | curl -v -X PUT --fail-with-body --json @- http://connect-svc.default.svc.cluster.local:8083/connector-plugins/io.debezium.connector.mysql.MySqlConnector/config/validate > "$OUTPUT_FILE"
+      {
+        "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+        "database.hostname": "mysql",
+        "database.port": "3306",
+        "database.user": "debezium",
+        "database.password": "$MY_SQL_PASSWORD",
+        "database.server.id": "42",
+        "database.server.name": "asgard",
+        "table.include.list": "demo.orders",
+        "topic.prefix": "asgard",
+        "database.history.kafka.bootstrap.servers": "kafka:29092",
+        "database.history.kafka.topic": "dbhistory.demo",
+        "decimal.handling.mode": "double",
+        "include.schema.changes": "true",
+        "transforms": "unwrap",
+        "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState"
+      }
+    EOF
+    }
+    function main() {
+      install_deps
+      curl_validate
+      error_code=$(jq_error_code)
+      if [[ "$error_code" -gt 299 ]]; then
+        cat "$OUTPUT_FILE"
+        exit 1
+      fi
+      error_count=$(jq_error_count)
+      printf "Found %d errors with body\n" "$error_count"
+      if [[ "$error_count" -gt 0 ]]; then
+        jq_show_errors
+        exit 2
+      fi
+    }
+    main "$@"

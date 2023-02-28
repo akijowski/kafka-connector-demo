@@ -9,6 +9,7 @@ tasks:
 
   test-kafka-query:
     internal: true
+    silent: true
     cmds:
       - |
         docker run -it --rm \
@@ -18,6 +19,7 @@ tasks:
           confluentinc/cp-kafkacat:latest >> tmp/02-db-host-change
   test-tail-topic:
     internal: true
+    silent: true
     cmds:
       - |
         docker run -it --rm \
@@ -27,12 +29,14 @@ tasks:
           confluentinc/cp-kafkacat:latest >> tmp/02-db-host-change
   test-update-connector:
     internal: true
+    silent: true
     env:
       CONNECTOR_NAME: source-debezium-00
       MYSQL_HOSTNAME: mysql-new
       MYSQL_PASSWORD: 'dbz'
       MYSQL_SERVER_ID: 1001
     cmds:
+      - echo "updating connector"
       - |
         docker run -it --rm \
           --network=kafka-demo-test \
@@ -50,7 +54,7 @@ tasks:
       - task: test-tail-topic
       - echo -e "\n# END INITIAL\n" >> tmp/02-db-host-change
       - docker compose -f docker-compose.test.yaml stop mysql-old
-      - sleep 60
+      - echo "Waiting for topics to be ready" && sleep 60
       - task: test-kafka-query
       - task: test-tail-topic
       - task: test-update-connector
